@@ -20,7 +20,7 @@ static const char *read_line(size_t *len_p, size_t *line_no_p)
    while (fgets(line, sizeof line, stdin)) {
       size_t len = strlen(line);
       line_no++;
-      if (line[len - 1] == '\n')
+      if (len && line[len - 1] == '\n')
          line[--len] = '\0';
       if (!len)
          continue;
