@@ -42,3 +42,47 @@ Automata do not allow storage of auxiliary data inside the lexicon. But perfect
 hashing can be used to implement this functionality: the ordinal corresponding
 to a word can be used as index into an array, mapped to a database row id, etc.,
 where the auxiliary data is stored.
+
+## Details
+
+### References
+
+This implementation draws from the following papers:
+
+* [Ciura & Deorowicz (2001), How to Squeeze a Lexicon](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.35.6055&rep=rep1&type=pdf)
+  Describes an efficient encoding format.
+* [Kowaltowski & Lucchesi (1993), Applications of finite automata representing large vocabularies](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.5272&rep=rep1&type=pdf)
+  Explains how to implement ordered minimal perfect hashing.
+
+### Encoding
+
+Automata are encoded as arrays of 32-bits integers. There is one integer per
+transition, which contains the following fields, starting from the least
+significant bit:
+
+    bit offset  value
+    ---         ---
+    0           whether this transition is the last outgoing transition of the
+                current state
+    1           whether this transition is terminal
+    2           transition byte
+    10          destination state
+
+If the automaton is numbered, a second array of 32-bits integers follows. This
+array contains the number of terminal transitions reachable from the
+corresponding transition in the automaton array, for each transition. Although
+using a single 64-bit integer to store data related to a given transition might
+be faster due to locality of reference, I chose to use two arrays so that the
+same code can be used for decoding standard an numbered automata.
+
+Finally, automata are prefixed with a 12-bytes header containing the following
+fields:
+
+    byte offset   field
+    ---           ---
+    0             magic identifier (the string "mini")
+    4             data format version (currently, 1)
+    8             number of transitions
+    9             automaton type (0 = standard, 1 = numbered)
+
+All integers are encoded in network order.
