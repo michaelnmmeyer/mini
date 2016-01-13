@@ -72,12 +72,8 @@ local function test_functions(ref_words, num_words)
    local pref = ref_words[pos]
    pref = pref:sub(1, math.random(#pref))
    
-   local it = words:iter(pref)
-   local whole = true
-   if math.random(2) == 1 then
-      it = words:iter_prefixed(pref)
-      whole = false
-   end
+   local whole = math.random(2) == 1
+   local it = words:iter(pref, whole and "string" or "prefix")
 
    local nword
    for i = 1, num_words do
@@ -95,7 +91,7 @@ local function test_functions(ref_words, num_words)
    end
    -- Iteration out of bound.
    assert(not words:iter("ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ")())
-   assert(not words:iter_prefixed("ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ")())
+   assert(not words:iter("ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ", "prefix")())
 end
 
 function test.functions()
@@ -179,16 +175,16 @@ end
 function test.lexicon_collection(module)
    local path = os.tmpname() 
    mini.encode(path, io.lines("/usr/share/dict/words"))
-   for _, func in ipairs{"iter", "iter_prefixed"} do
-      local lex = mini.load(path)
-      local itors = {}
-      for i = 1, math.random(20) do
-         itors[i] = lex[func](lex, "")
-      end
-      lex = nil; collectgarbage()
-      for i = 1, #itors do
-         itors[i]()
-      end
+   local lex = mini.load(path)
+   os.remove(path)
+   
+   local itors = {}
+   for i = 1, math.random(20) do
+      itors[i] = lex:iter()
+   end
+   lex = nil; collectgarbage()
+   for i = 1, #itors do
+      itors[i]()
    end
 end
 

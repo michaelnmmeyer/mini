@@ -6,6 +6,30 @@
 #include <string.h>
 #include "../mini.h"
 
+/* Begin compatibility code for Lua 5.1. Copy-pasted from Lua's source. */
+#if !defined(LUA_VERSION_NUM) || LUA_VERSION_NUM == 501
+
+static void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
+  luaL_checkstack(L, nup+1, "too many upvalues");
+  for (; l->name != NULL; l++) {  /* fill the table with given functions */
+    int i;
+    lua_pushstring(L, l->name);
+    for (i = 0; i < nup; i++)  /* copy upvalues to the top */
+      lua_pushvalue(L, -(nup+1));
+    lua_pushcclosure(L, l->func, nup);  /* closure with those upvalues */
+    lua_settable(L, -(nup + 3));
+  }
+  lua_pop(L, nup);  /* remove upvalues */
+}
+
+#define luaL_newlibtable(L,l) \
+  lua_createtable(L, 0, sizeof(l)/sizeof((l)[0]) - 1)
+
+#define luaL_newlib(L,l)   (luaL_newlibtable(L,l), luaL_setfuncs(L,l,0))
+
+#endif
+/* End compatibility code. */
+
 #define MN_MT "mini"
 #define MN_ITER_MT "mini.iter"
 
@@ -128,10 +152,21 @@ static int mn_lua_contains(lua_State *lua)
    return 1;
 }
 
+static uint32_t mn_abs_index(lua_State *lua, int idx, const struct mini *fsa)
+{
+   int64_t num = luaL_checknumber(lua, idx);
+   if (num < 0) {
+      num += mn_size(fsa) + 1;
+      if (num < 0)
+         num = 0;
+   }
+   return num;
+}
+
 static int mn_lua_extract(lua_State *lua)
 {
    const struct mini *fsa = check_fsa(lua);
-   uint32_t pos = luaL_checknumber(lua, 2);
+   uint32_t pos = mn_abs_index(lua, 2, fsa);
    
    char word[MN_MAX_WORD_LEN + 1];
    size_t len = mn_extract(fsa, pos, word);
@@ -208,36 +243,38 @@ static struct mini_iter *mn_lua_iter_new(lua_State *lua, struct mini **fsap)
 
 static int mn_lua_iter_init(lua_State *lua)
 {
+   lua_pushnil(lua);
+
    struct mini *fsa;
    struct mini_iter *it = mn_lua_iter_new(lua, &fsa);
    
    switch (lua_type(lua, 2)) {
-   case LUA_TNUMBER:
-      mn_iter_initn(it, fsa, lua_tonumber(lua, 2));
+   case LUA_TNUMBER: {
+      uint32_t num = mn_abs_index(lua, 2, fsa);
+      mn_iter_initn(it, fsa, num);
       break;
+   }
    case LUA_TSTRING: {
       size_t len;
       const char *str = lua_tolstring(lua, 2, &len);
-      mn_iter_inits(it, fsa, str, len);
+      const char *mode = luaL_optstring(lua, 3, "string");
+      if (!strcmp(mode, "string"))
+         mn_iter_inits(it, fsa, str, len);
+      else if (!strcmp(mode, "prefix"))
+         mn_iter_initp(it, fsa, str, len);
+      else
+         return luaL_error(lua, "invalid iteration mode: '%s'", mode);
       break;
    }
-   default:
+   case LUA_TNIL:
+   case LUA_TNONE:
       mn_iter_init(it, fsa);
       break;
+   default: {
+      const char *type = lua_typename(lua, lua_type(lua, 2));
+      return luaL_error(lua, "bad value at #2 (expect string, number, or nil, have %s)", type);
    }
-   
-   lua_pushcclosure(lua, mn_lua_iter_next, 1);
-   return 1;
-}
-
-static int mn_lua_iter_prefixed(lua_State *lua)
-{
-   size_t len;
-   const char *prefix = luaL_checklstring(lua, 2, &len);
-
-   struct mini *fsa;
-   struct mini_iter *it = mn_lua_iter_new(lua, &fsa);
-   mn_iter_initp(it, fsa, prefix, len);
+   }
    
    lua_pushcclosure(lua, mn_lua_iter_next, 1);
    return 1;
@@ -277,7 +314,6 @@ int luaopen_mini(lua_State *lua)
       {"type", mn_lua_type},
       {"size", mn_lua_size},
       {"iter", mn_lua_iter_init},
-      {"iter_prefixed", mn_lua_iter_prefixed},
       {NULL, NULL},
    };
    luaL_newmetatable(lua, MN_MT);
@@ -298,6 +334,9 @@ int luaopen_mini(lua_State *lua)
    luaL_newlib(lua, lib);
    lua_pushnumber(lua, MN_MAX_WORD_LEN);
    lua_setfield(lua, -2, "MAX_WORD_LEN");
+   
+   lua_pushstring(lua, MN_VERSION);
+   lua_setfield(lua, -2, "VERSION");
    
    return 1;
 }

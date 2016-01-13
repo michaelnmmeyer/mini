@@ -36,6 +36,9 @@ invocation:
 
     $ make && sudo make install
 
+A Lua binding is also available. See the readme in the `lua` directory for
+instructions about how to build and use it.
+
 ## Note
 
 Automata do not allow storage of auxiliary data inside the lexicon. But perfect
