@@ -1,0 +1,17 @@
+Usage: %s <command> [option] <automaton_path>
+Manage an automaton.
+
+Commands:
+   create [-t | --type=<standard|numbered>] <automaton_path>
+      Create an automaton.
+      The lexicon to encode is read from the standard input. It must be sorted,
+      one word per line. The default automaton type is "standard".
+   dump [-f | --format=<txt|tsv|dot>] <automaton_path>
+      Display the contents of an automaton. Output formats are:
+        txt   One word per line
+        tsv   One transition per line, the first line containing field names.
+        dot   Dot file, for visualization with Graphviz.
+      The default output format is "txt".
+
+Common option:
+   -h | --help     Display this message
