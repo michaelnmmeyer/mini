@@ -10,6 +10,10 @@
 /* Maximum length of a word, in bytes, discounting the terminal nul byte. */
 #define MN_MAX_WORD_LEN 333
 
+/* Error codes.
+ * All functions below that return an int (except mn_contains()) return one of
+ * these.
+ */
 enum {
    MN_OK,         /* No error. */
    MN_EWORD,      /* Attempt to add the empty string or a too long word. */
@@ -156,7 +160,7 @@ struct mini_iter {
  * over the whole automaton.
  * Returns 1 if there are words to iterate on, 0 otherwise.
  */
-uint32_t mn_iter_init(struct mini_iter *it, const struct mini *fsa);
+uint32_t mn_iter_init(struct mini_iter *, const struct mini *);
 
 /* Returns an iterator over all words of an automaton that start with a given
  * prefix, the prefix itself included if it exists as a full word in the
@@ -165,8 +169,8 @@ uint32_t mn_iter_init(struct mini_iter *it, const struct mini *fsa);
  * word if the automaton is numbered, 1 if it isn't. If there are no matching
  * words, returns 0.
  */
-uint32_t mn_iter_initp(struct mini_iter *it, const struct mini *fsa,
-                           const void *prefix, size_t len);
+uint32_t mn_iter_initp(struct mini_iter *, const struct mini *,
+                       const void *prefix, size_t len);
 
 /* Returns an iterator over an automaton, starting at a word, and including
  * that word if it is part of the lexicon.

@@ -97,7 +97,7 @@ local function test_functions(ref_words, num_words)
    
    local mode = math.random(2) == 1 and "string" or "prefix"
    local it, start_pos = words:iter(pref, mode)
-   if fsa_type == "standard" then
+   if fsa_type == "numbered" then
       assert(words:extract(start_pos) == it())
    end
    local it, start_pos = words:iter(pref, mode)
@@ -107,7 +107,7 @@ local function test_functions(ref_words, num_words)
       local word = ref_words[i]
       if word:starts_with(pref) then
          nword = it()
-         assert(nword == word, nword .. " *** " .. word .. " $$$ " .. pref)
+         assert(nword == word)
       elseif nword then
          if mode == "string" then
             assert(it() == word)

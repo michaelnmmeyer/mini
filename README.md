@@ -1,6 +1,6 @@
 # mini
 
-Finite-state lexicon
+Finite-state lexicon.
 
 ## Purpose
 

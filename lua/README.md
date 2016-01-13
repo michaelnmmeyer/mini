@@ -33,7 +33,7 @@ Allocates a new automaton encoder.
 `automaton_type`, if given, must be one of the strings `"standard"` and
 `"numbered"`. Choose `"standard"` if you want to create a standard automaton,
 `"numbered"` if you want to create an automaton with ordered minimal perfect
-hashing capabilities.
+hashing capabilities. Default is `"standard"`.
 
 `encoder:add(word)`  
 Adds a new word to an automaton. Words must be added in lexicographical order.
@@ -92,5 +92,5 @@ Examples:
     for word in lexicon:iter("sub", "prefix") do print(word) end
     -- Iterate over all words >= "diction".
     for word in lexicon:iter("diction") do print(word) end
-    -- Iterate over all words after the 333th.
+    -- Iterate over all words, starting at the 333th.
     for word in lexicon:iter(333) do print(word) end
