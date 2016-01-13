@@ -15,6 +15,7 @@ static const char *const words[] = {
 
 static const char *lexicon_path = "lexicon.dat";
 
+/* Error handling omitted for brevity! */
 int main(void)
 {
    /* Create an automaton encoding words in the above array. */

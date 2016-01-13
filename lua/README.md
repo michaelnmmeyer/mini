@@ -15,6 +15,9 @@ You can also pass in the correct version number on the command-line:
 
 ## Usage
 
+See the file `example.lua` in this directory for an introductory example. The
+following is a more formal description.
+
 `mini.VERSION`  
 The library version.
 
