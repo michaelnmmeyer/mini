@@ -97,7 +97,7 @@ local function test_functions(ref_words, num_words)
    
    local mode = math.random(2) == 1 and "string" or "prefix"
    local it, start_pos = words:iter(pref, mode)
-   if mode == "standard" then
+   if fsa_type == "standard" then
       assert(words:extract(start_pos) == it())
    end
    local it, start_pos = words:iter(pref, mode)
