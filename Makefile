@@ -8,10 +8,10 @@ CFLAGS += -flto -fdata-sections -ffunction-sections -Wl,--gc-sections
 # Abstract targets
 #--------------------------------------
 
-all: mini
+all: mini example
 
 clean:
-	rm -f mini lua/mini.so
+	rm -f mini example lua/mini.so
 
 check: lua/mini.so
 	cd test && valgrind --leak-check=full --error-exitcode=1 lua test.lua
@@ -34,6 +34,9 @@ cmd/mini.ih: cmd/mini.txt
 
 mini: $(wildcard cmd/*) mini.h mini.c
 	$(CC) $(CFLAGS) cmd/mini.c cmd/cmd.c mini.c -o $@
+
+example: example.c mini.h mini.c
+	$(CC) $(CFLAGS) $< mini.c -o $@
 
 lua/mini.so: mini.h mini.c lua/mini.c
 	$(MAKE) -C lua

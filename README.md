@@ -36,12 +36,15 @@ invocation:
 
     $ make && sudo make install
 
-A Lua binding is also available. See the readme in the `lua` directory for
-instructions about how to build and use it.
+A Lua binding is also available. See the file `README.md` in the `lua` directory
+for instructions about how to build and use it.
 
-## Note
+## Usage
 
-Automata do not allow storage of auxiliary data inside the lexicon. But perfect
+The C API is documented in `mini.h`. See the file `example.c` for a concrete
+example.
+
+Automata do not allow storage of auxiliary data inside the lexicon, but perfect
 hashing can be used to implement this functionality: the ordinal corresponding
 to a word can be used as index into an array, mapped to a database row id, etc.,
 where the auxiliary data is stored.
@@ -52,9 +55,9 @@ where the auxiliary data is stored.
 
 This implementation draws from the following papers:
 
-* [Ciura & Deorowicz (2001), How to Squeeze a Lexicon](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.35.6055&rep=rep1&type=pdf)
+* [Ciura & Deorowicz (2001), How to Squeeze a Lexicon](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.35.6055&rep=rep1&type=pdf).
   Describes an efficient encoding format.
-* [Kowaltowski & Lucchesi (1993), Applications of finite automata representing large vocabularies](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.5272&rep=rep1&type=pdf)
+* [Kowaltowski & Lucchesi (1993), Applications of finite automata representing large vocabularies](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.5272&rep=rep1&type=pdf).
   Explains how to implement ordered minimal perfect hashing.
 
 ### Encoding
