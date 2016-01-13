@@ -3,7 +3,11 @@ local mini = require("mini")
 local lexicon_path = "lexicon.dat"
 
 -- Create a lexicon.
-mini.encode(lexicon_path, io.lines("/usr/share/dict/words"))
+local enc = mini.encoder()
+for word in io.lines("/usr/share/dict/words") do
+   enc:add(word)
+end
+enc:dump(lexicon_path)
 
 -- Load the lexicon we just created.
 local lexicon = mini.load(lexicon_path)

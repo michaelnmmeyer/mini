@@ -31,69 +31,88 @@ static void luaL_setfuncs (lua_State *L, const luaL_Reg *l, int nup) {
 /* End compatibility code. */
 
 #define MN_MT "mini"
+#define MN_ENC_MT "mini.enc"
 #define MN_ITER_MT "mini.iter"
 
-static int mn_lua_encode(lua_State *lua)
+static int mn_lua_enc_new(lua_State *lua)
 {
-   const char *path = luaL_checkstring(lua, 1);
-   luaL_argcheck(lua, lua_isfunction(lua, 2), 2, "expected a callable");
-
    static const char *const types[] = {
       [MN_STANDARD] = "standard",
       [MN_NUMBERED] = "numbered",
       NULL
    };
-   enum mn_type type = luaL_checkoption(lua, 3, "standard", types);
+   enum mn_type type = luaL_checkoption(lua, 1, "standard", types);
    
-   struct mini_enc *enc = mn_enc_new(type);
+   struct mini_enc **enc = lua_newuserdata(lua, sizeof *enc);
+   *enc = mn_enc_new(type);
+   
+   luaL_getmetatable(lua, MN_ENC_MT);
+   lua_setmetatable(lua, -2);
+   return 1;
+}
 
-   FILE *fp = NULL;
+static int mn_lua_enc_add(lua_State *lua)
+{
+   struct mini_enc **enc = luaL_checkudata(lua, 1, MN_ENC_MT);
+   size_t len;
+   const void *word = luaL_checklstring(lua, 2, &len);
    
-   for (;;) {
-      /* Copy the iterator. */
-      lua_pushvalue(lua, 2);
-      if (lua_pcall(lua, 0, 1, 0))
-         /* Error message at the top of the stack. */
-         goto fail;
-      if (lua_isnil(lua, -1))
-         break;
-      if (lua_type(lua, -1) != LUA_TSTRING) {
-         lua_pushliteral(lua, "callback function didn't return a string");
-         goto fail;
-      } 
-      size_t len;
-      const char *word = lua_tolstring(lua, -1, &len);
-      int ret = mn_enc_add(enc, word, len);
-      if (ret) {
-         lua_pushfstring(lua, "error while adding '%s': %s", word, mn_strerror(ret));
-         goto fail;
-      }
-      lua_pop(lua, 1);
-   }
-   
-   fp = fopen(path, "wb");
-   if (!fp) {
-      lua_pushstring(lua, strerror(errno));
-      goto fail;
-   }
-   int ret = mn_enc_dump_file(enc, fp);
+   int ret = mn_enc_add(*enc, word, len);
    if (ret) {
+      /* Programming error. */
       lua_pushstring(lua, mn_strerror(ret));
-      goto fail;
+      return lua_error(lua);
    }
-   if (fclose(fp)) {
-      lua_pushstring(lua, strerror(errno));
-      fp = NULL;
-      goto fail;
-   }
-   mn_enc_free(enc);
    return 0;
+}
 
-fail:
-   mn_enc_free(enc);
-   if (fp)
-      fclose(fp);
-   return lua_error(lua);
+static int mn_lua_enc_dump(lua_State *lua)
+{
+   struct mini_enc **enc = luaL_checkudata(lua, 1, MN_ENC_MT);
+   const char *path = luaL_checkstring(lua, 2);
+
+   FILE *fp = fopen(path, "wb");
+   if (!fp) {
+      lua_pushnil(lua);
+      lua_pushstring(lua, strerror(errno));
+      return 2;
+   }
+   
+   int ret = mn_enc_dump_file(*enc, fp);
+   switch (ret) {
+   case MN_OK:
+      break;
+   case MN_EIO:
+      lua_pushnil(lua);
+      lua_pushstring(lua, strerror(errno));
+      return 2;
+   default:
+      /* Programming error. */
+      lua_pushstring(lua, mn_strerror(ret));
+      return lua_error(lua);
+   }
+
+   if (fclose(fp)) {
+      lua_pushnil(lua);
+      lua_pushstring(lua, strerror(errno));
+      return 2;
+   }
+   lua_pushboolean(lua, 1);
+   return 1;
+}
+
+static int mn_lua_enc_clear(lua_State *lua)
+{
+   struct mini_enc **enc = luaL_checkudata(lua, 1, MN_ENC_MT);
+   mn_enc_clear(*enc);
+   return 0;
+}
+
+static int mn_lua_enc_free(lua_State *lua)
+{
+   struct mini_enc **enc = luaL_checkudata(lua, 1, MN_ENC_MT);
+   mn_enc_free(*enc);
+   return 0;
 }
 
 struct mini_lua {
@@ -248,10 +267,11 @@ static int mn_lua_iter_init(lua_State *lua)
    struct mini *fsa;
    struct mini_iter *it = mn_lua_iter_new(lua, &fsa);
    
+   uint32_t pos;
    switch (lua_type(lua, 2)) {
    case LUA_TNUMBER: {
       uint32_t num = mn_abs_index(lua, 2, fsa);
-      mn_iter_initn(it, fsa, num);
+      pos = mn_iter_initn(it, fsa, num);
       break;
    }
    case LUA_TSTRING: {
@@ -259,16 +279,16 @@ static int mn_lua_iter_init(lua_State *lua)
       const char *str = lua_tolstring(lua, 2, &len);
       const char *mode = luaL_optstring(lua, 3, "string");
       if (!strcmp(mode, "string"))
-         mn_iter_inits(it, fsa, str, len);
+         pos = mn_iter_inits(it, fsa, str, len);
       else if (!strcmp(mode, "prefix"))
-         mn_iter_initp(it, fsa, str, len);
+         pos = mn_iter_initp(it, fsa, str, len);
       else
          return luaL_error(lua, "invalid iteration mode: '%s'", mode);
       break;
    }
    case LUA_TNIL:
    case LUA_TNONE:
-      mn_iter_init(it, fsa);
+      pos = mn_iter_init(it, fsa);
       break;
    default: {
       const char *type = lua_typename(lua, lua_type(lua, 2));
@@ -277,7 +297,11 @@ static int mn_lua_iter_init(lua_State *lua)
    }
    
    lua_pushcclosure(lua, mn_lua_iter_next, 1);
-   return 1;
+   if (pos)
+      lua_pushnumber(lua, pos);
+   else
+      lua_pushnil(lua);
+   return 2;
 }
 
 static int mn_lua_iter_next(lua_State *lua)
@@ -305,6 +329,18 @@ static int mn_lua_iter_fini(lua_State *lua)
 
 int luaopen_mini(lua_State *lua)
 {
+   const luaL_Reg enc_fns[] = {
+      {"__gc", mn_lua_enc_free},
+      {"add", mn_lua_enc_add},
+      {"clear", mn_lua_enc_clear},
+      {"dump", mn_lua_enc_dump},
+      {NULL, NULL},
+   };
+   luaL_newmetatable(lua, MN_ENC_MT);
+   lua_pushvalue(lua, -1);
+   lua_setfield(lua, -2, "__index");
+   luaL_setfuncs(lua, enc_fns, 0);
+   
    const luaL_Reg fns[] = {
       {"__gc", mn_lua_free},
       {"__len", mn_lua_size},
@@ -327,8 +363,8 @@ int luaopen_mini(lua_State *lua)
    lua_settable(lua, -3);
    
    const luaL_Reg lib[] = {
+      {"encoder", mn_lua_enc_new},
       {"load", mn_lua_load},
-      {"encode", mn_lua_encode},
       {NULL, NULL},
    };
    luaL_newlib(lua, lib);

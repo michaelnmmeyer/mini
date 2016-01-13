@@ -18,6 +18,12 @@ function string:starts_with(prefix)
    return self:sub(1, #prefix) == prefix
 end
 
+local function encode_fsa(path, itor, type)
+   local enc = mini.encoder(type)
+   for word in itor do enc:add(word) end
+   assert(enc:dump(path))
+end
+
 local test = {}
 
 function test.basic()
@@ -26,24 +32,35 @@ function test.basic()
    -- Should not leak.
    assert(not pcall(mini.load, nil))
    -- Error while calling the callback.
-   assert(not pcall(mini.encode, path, function() error("foo") end))
+   assert(not pcall(encode_fsa, path, function() error("foo") end))
    -- Bad return value.
-   assert(not pcall(mini.encode, path, function() return true end))
-   -- Error while adding words.
-   assert(not pcall(mini.encode, path, get_iter{"z","a"}))
+   assert(not pcall(encode_fsa, path, function() return true end))
+   -- Attempt to add words out of order.
+   assert(not pcall(encode_fsa, path, get_iter{"z","a"}))
+   -- Attempt to add the empty string.
+   assert(not pcall(encode_fsa, path, get_iter{""}))
+   -- Attempt to add a too long word.
+   local s = string.rep("z", mini.MAX_WORD_LEN + 1)
+   assert(not pcall(encode_fsa, path, get_iter{s}))
 end
 
 local function test_functions(ref_words, num_words)
    local path = os.tmpname()
-   mini.encode(path, get_iter(ref_words), "numbered")
+   local fsa_type = math.random(2) == 1 and "standard" or "numbered"
+   encode_fsa(path, get_iter(ref_words), fsa_type)
    local words = assert(mini.load(path))
    
    -- Main functions.
    for i = 1, num_words do
       local word = assert(ref_words[i])
       assert(words:contains(word))
-      assert(words:locate(word) == i)
-      assert(words:extract(i) == word)
+      if fsa_type == "numbered" then
+         assert(words:locate(word) == i)
+         assert(words:extract(i) == word)
+      else
+         assert(words:locate(word) == nil)
+         assert(words:extract(i) == nil)
+      end
    end
    
    assert(not words:locate("zefonaodnaozndozfneozoz"))
@@ -54,26 +71,36 @@ local function test_functions(ref_words, num_words)
 
    -- Iteration from an ordinal.
    local pos = math.random(num_words)
-   local itor = assert(words:iter(pos))
-   local cnt = 0
-   for word in itor do
-      assert(ref_words[pos + cnt] == word)
-      cnt = cnt + 1
+   if fsa_type == "numbered" then
+      local itor, start_pos = assert(words:iter(pos))
+      assert(start_pos == pos)
+      local cnt = 0
+      for word in itor do
+         assert(ref_words[pos + cnt] == word)
+         cnt = cnt + 1
+      end
+      -- Should not break when the iterator is exhausted.
+      itor()
+      itor()
+      itor()
+      assert(not ref_words[pos + cnt])
+      -- Iteration out of bound.
+      assert(not words:iter(num_words + 1)())
+   else
+      local itor, start_pos = words:iter(pos)
+      assert(not itor() and not start_pos)
    end
-   -- Should not break when the iterator is exhausted.
-   itor()
-   itor()
-   itor()
-   assert(not ref_words[pos + cnt])
-   -- Iteration out of bound.
-   assert(not words:iter(num_words + 1)())
 
    -- Iteration from a string.
    local pref = ref_words[pos]
    pref = pref:sub(1, math.random(#pref))
    
-   local whole = math.random(2) == 1
-   local it = words:iter(pref, whole and "string" or "prefix")
+   local mode = math.random(2) == 1 and "string" or "prefix"
+   local it, start_pos = words:iter(pref, mode)
+   if mode == "standard" then
+      assert(words:extract(start_pos) == it())
+   end
+   local it, start_pos = words:iter(pref, mode)
 
    local nword
    for i = 1, num_words do
@@ -82,7 +109,7 @@ local function test_functions(ref_words, num_words)
          nword = it()
          assert(nword == word, nword .. " *** " .. word .. " $$$ " .. pref)
       elseif nword then
-         if whole then
+         if mode == "string" then
             assert(it() == word)
          else
             assert(not it())
@@ -96,7 +123,7 @@ end
 
 function test.functions()
    local words = {}
-   for word in io.lines("/usr/share/dict/words") do
+   for word in io.lines("words.txt") do
       table.insert(words, word)
    end
    -- Test with variable vocabulary size.
@@ -110,7 +137,7 @@ end
 
 function test.empty_lexicon()
    local path = os.tmpname()
-   mini.encode(path, function() return nil end)
+   encode_fsa(path, function() return nil end)
    local words = assert(mini.load(path))
    
    assert(not words:contains(""))
@@ -126,7 +153,7 @@ end
 
 function test.binary_strings()
    local path = os.tmpname()
-   mini.encode(path, get_iter{"\0", "\0\1"}, "numbered")
+   encode_fsa(path, get_iter{"\0", "\0\1"}, "numbered")
    local words = assert(mini.load(path))
    
    assert(words:contains("\0"))
@@ -151,21 +178,21 @@ function test.fsa_types()
    local path = os.tmpname()
    
    -- Not numbered
-   mini.encode(path, io.lines("/usr/share/dict/words"), "standard")
+   encode_fsa(path, io.lines("words.txt"), "standard")
    local aut = assert(mini.load(path))
    assert(aut:type() == "standard")
    assert(not aut:iter(23)())
    assert(not aut:extract(23))
    
    -- Numbered
-   mini.encode(path, io.lines("/usr/share/dict/words"), "numbered")
+   encode_fsa(path, io.lines("words.txt"), "numbered")
    local aut = assert(mini.load(path))
    assert(aut:type() == "numbered")
    assert(aut:iter(23)())
    assert(aut:extract(23))
    
    -- Typo in the lexicon type
-   assert(not pcall(mini.encode, path, io.lines("/usr/share/dict/words"), "foobar"))
+   assert(not pcall(encode_fsa, path, io.lines("words.txt"), "foobar"))
    
    os.remove(path)
 end
@@ -174,7 +201,7 @@ end
 -- This must be run under valgrind to be useful at all.
 function test.lexicon_collection(module)
    local path = os.tmpname() 
-   mini.encode(path, io.lines("/usr/share/dict/words"))
+   encode_fsa(path, io.lines("words.txt"))
    local lex = mini.load(path)
    os.remove(path)
    
@@ -186,6 +213,32 @@ function test.lexicon_collection(module)
    for i = 1, #itors do
       itors[i]()
    end
+end
+
+-- Should be able to dump several times the same automaton.
+function test.dump_several_times()
+   local enc = mini.encoder()
+   for word in io.lines("words.txt") do
+      enc:add(word)
+   end
+   local path1, path2 = os.tmpname(), os.tmpname()
+   enc:dump(path1); enc:dump(path2)
+   assert(io.open(path1, "rb"):read("*a") == io.open(path2, "rb"):read("*a"))
+   os.remove(path1); os.remove(path2)
+end
+
+-- Should be able to reuse the same encoder several times.
+function test.reuse_several_times()
+   local enc = mini.encoder()
+   local path = os.tmpname()
+   enc:add("a")
+   assert(enc:dump(path))
+   enc:clear()
+   enc:add("z")
+   assert(enc:dump(path))
+   local itor = assert(mini.load(path)):iter()
+   assert(itor() == "z" and not itor())
+   os.remove(path)
 end
 
 local names = {}
