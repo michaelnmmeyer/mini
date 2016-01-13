@@ -7,11 +7,11 @@ print("seed", seed)
 math.randomseed(seed)
 
 local function get_iter(words)
-	local i = 0
-	return function()
-		i = i + 1
-		return words[i]
-	end
+   local i = 0
+   return function()
+      i = i + 1
+      return words[i]
+   end
 end
 
 function string:starts_with(prefix)
@@ -21,81 +21,81 @@ end
 local test = {}
 
 function test.basic()
-	-- Constants
-	assert(type(mini.MAX_WORD_LEN) == "number")
-	-- Should not leak.
-	assert(not pcall(mini.load, nil))
-	-- Error while calling the callback.
-	assert(not pcall(mini.encode, path, function() error("foo") end))
-	-- Bad return value.
-	assert(not pcall(mini.encode, path, function() return true end))
-	-- Error while adding words.
-	assert(not pcall(mini.encode, path, get_iter{"z","a"}))
+   -- Constants
+   assert(type(mini.MAX_WORD_LEN) == "number")
+   -- Should not leak.
+   assert(not pcall(mini.load, nil))
+   -- Error while calling the callback.
+   assert(not pcall(mini.encode, path, function() error("foo") end))
+   -- Bad return value.
+   assert(not pcall(mini.encode, path, function() return true end))
+   -- Error while adding words.
+   assert(not pcall(mini.encode, path, get_iter{"z","a"}))
 end
 
 local function test_functions(ref_words, num_words)
-	local path = os.tmpname()
-	mini.encode(path, get_iter(ref_words), "numbered")
-	local words = assert(mini.load(path))
-	
-	-- Main functions.
-	for i = 1, num_words do
+   local path = os.tmpname()
+   mini.encode(path, get_iter(ref_words), "numbered")
+   local words = assert(mini.load(path))
+   
+   -- Main functions.
+   for i = 1, num_words do
       local word = assert(ref_words[i])
-		assert(words:contains(word))
-		assert(words:locate(word) == i)
-		assert(words:extract(i) == word)
-	end
-	
-	assert(not words:locate("zefonaodnaozndozfneozoz"))
-	assert(not words:extract(num_words + 1))
-	
-	-- Size (__len metamethod)
-	assert(words:size() == num_words and #words == num_words)
+      assert(words:contains(word))
+      assert(words:locate(word) == i)
+      assert(words:extract(i) == word)
+   end
+   
+   assert(not words:locate("zefonaodnaozndozfneozoz"))
+   assert(not words:extract(num_words + 1))
+   
+   -- Size (__len metamethod)
+   assert(words:size() == num_words and #words == num_words)
 
-	-- Iteration from an ordinal.
-	local pos = math.random(num_words)
-	local itor = assert(words:iter(pos))
-	local cnt = 0
-	for word in itor do
-		assert(ref_words[pos + cnt] == word)
-		cnt = cnt + 1
-	end
-	-- Should not break when the iterator is exhausted.
-	itor()
-	itor()
-	itor()
-	assert(not ref_words[pos + cnt])
-	-- Iteration out of bound.
-	assert(not words:iter(num_words + 1)())
+   -- Iteration from an ordinal.
+   local pos = math.random(num_words)
+   local itor = assert(words:iter(pos))
+   local cnt = 0
+   for word in itor do
+      assert(ref_words[pos + cnt] == word)
+      cnt = cnt + 1
+   end
+   -- Should not break when the iterator is exhausted.
+   itor()
+   itor()
+   itor()
+   assert(not ref_words[pos + cnt])
+   -- Iteration out of bound.
+   assert(not words:iter(num_words + 1)())
 
-	-- Iteration from a string.
-	local pref = ref_words[pos]
-	pref = pref:sub(1, math.random(#pref))
-	
-	local it = words:iter(pref)
-	local whole = true
-	if math.random(2) == 1 then
-		it = words:iter_prefixed(pref)
-		whole = false
-	end
+   -- Iteration from a string.
+   local pref = ref_words[pos]
+   pref = pref:sub(1, math.random(#pref))
+   
+   local it = words:iter(pref)
+   local whole = true
+   if math.random(2) == 1 then
+      it = words:iter_prefixed(pref)
+      whole = false
+   end
 
-	local nword
-	for i = 1, num_words do
-	   local word = ref_words[i]
-		if word:starts_with(pref) then
-			nword = it()
-			assert(nword == word, nword .. " *** " .. word .. " $$$ " .. pref)
-		elseif nword then
-			if whole then
-				assert(it() == word)
-			else
-				assert(not it())
-			end
-		end
-	end
-	-- Iteration out of bound.
-	assert(not words:iter("ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ")())
-	assert(not words:iter_prefixed("ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ")())
+   local nword
+   for i = 1, num_words do
+      local word = ref_words[i]
+      if word:starts_with(pref) then
+         nword = it()
+         assert(nword == word, nword .. " *** " .. word .. " $$$ " .. pref)
+      elseif nword then
+         if whole then
+            assert(it() == word)
+         else
+            assert(not it())
+         end
+      end
+   end
+   -- Iteration out of bound.
+   assert(not words:iter("ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ")())
+   assert(not words:iter_prefixed("ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ")())
 end
 
 function test.functions()
@@ -152,44 +152,44 @@ function test.binary_strings()
 end
 
 function test.fsa_types()
-	local path = os.tmpname()
-	
-	-- Not numbered
-	mini.encode(path, io.lines("/usr/share/dict/words"), "standard")
-	local aut = assert(mini.load(path))
-	assert(aut:type() == "standard")
-	assert(not aut:iter(23)())
-	assert(not aut:extract(23))
-	
-	-- Numbered
-	mini.encode(path, io.lines("/usr/share/dict/words"), "numbered")
-	local aut = assert(mini.load(path))
-	assert(aut:type() == "numbered")
-	assert(aut:iter(23)())
-	assert(aut:extract(23))
-	
-	-- Typo in the lexicon type
-	assert(not pcall(mini.encode, path, io.lines("/usr/share/dict/words"), "foobar"))
-	
-	os.remove(path)
+   local path = os.tmpname()
+   
+   -- Not numbered
+   mini.encode(path, io.lines("/usr/share/dict/words"), "standard")
+   local aut = assert(mini.load(path))
+   assert(aut:type() == "standard")
+   assert(not aut:iter(23)())
+   assert(not aut:extract(23))
+   
+   -- Numbered
+   mini.encode(path, io.lines("/usr/share/dict/words"), "numbered")
+   local aut = assert(mini.load(path))
+   assert(aut:type() == "numbered")
+   assert(aut:iter(23)())
+   assert(aut:extract(23))
+   
+   -- Typo in the lexicon type
+   assert(not pcall(mini.encode, path, io.lines("/usr/share/dict/words"), "foobar"))
+   
+   os.remove(path)
 end
 
 -- Ensure a lexicon object is not collected while there are remaining iterators.
 -- This must be run under valgrind to be useful at all.
 function test.lexicon_collection(module)
-	local path = os.tmpname() 
-	mini.encode(path, io.lines("/usr/share/dict/words"))
-	for _, func in ipairs{"iter", "iter_prefixed"} do
-		local lex = mini.load(path)
-		local itors = {}
-		for i = 1, math.random(20) do
-			itors[i] = lex[func](lex, "")
-		end
-		lex = nil; collectgarbage()
-		for i = 1, #itors do
-			itors[i]()
-		end
-	end
+   local path = os.tmpname() 
+   mini.encode(path, io.lines("/usr/share/dict/words"))
+   for _, func in ipairs{"iter", "iter_prefixed"} do
+      local lex = mini.load(path)
+      local itors = {}
+      for i = 1, math.random(20) do
+         itors[i] = lex[func](lex, "")
+      end
+      lex = nil; collectgarbage()
+      for i = 1, #itors do
+         itors[i]()
+      end
+   end
 end
 
 local names = {}
