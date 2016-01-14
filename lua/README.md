@@ -37,7 +37,7 @@ hashing capabilities. Default is `"standard"`.
 
 `encoder:add(word)`  
 Adds a new word to an automaton. Words must be added in lexicographical order.
-The length of a word must be > 0 and < `mini.MAX_WORD_LEN`.
+The length of a word must be > 0 and <= `mini.MAX_WORD_LEN`.
 
 `encoder:dump(path)`  
 Dumps an automaton to a file. Returns `true` on success, `nil` plus an error
