@@ -92,30 +92,30 @@ struct mini_enc {
       bool terminal;                   /* Whether terminal. */
    } states[MN_MAX_WORD_LEN + 1];
 
-   uint32_t *automaton;       /* The automaton proper. */
-   uint32_t *counts;          /* Array of word counts (may be NULL). */
-   uint32_t aut_size;         /* Size of the automaton array (= size of the
-                               * counts array). */
-
    struct mini_enc_bkt *table[MN_HT_SIZE];  /* States hash table. */
 
    /* Whether the automaton has been dumped at least one time, in which case
     * adding new words is not allowed anymore.
     */
    bool finished;
+
+   uint32_t *counts;          /* Array of word counts (may be NULL). */
+   uint32_t aut_size;         /* Size of the automaton array (= size of the
+                               * counts array). */
+   uint32_t automaton[];      /* The automaton proper. */
 };
 
 struct mini_enc *mn_enc_new(enum mn_type type)
 {
    assert(type == MN_STANDARD || type == MN_NUMBERED);
 
-   struct mini_enc *enc = calloc(1, sizeof *enc);
+   struct mini_enc *enc;
+   const size_t size = offsetof(struct mini_enc, automaton);
    if (type == MN_NUMBERED) {
-      enc->automaton = malloc(2 * MN_MAX_SIZE * sizeof *enc->automaton);
+      enc = calloc(1, size + 2 * MN_MAX_SIZE * sizeof *enc->automaton);
       enc->counts = &enc->automaton[MN_MAX_SIZE];
    } else {
-      enc->automaton = malloc(MN_MAX_SIZE * sizeof *enc->automaton);
-      enc->counts = NULL;
+      enc = calloc(1, size + MN_MAX_SIZE * sizeof *enc->automaton);
    }
    return enc;
 }
@@ -135,7 +135,6 @@ static void mn_clear_table(struct mini_enc *enc)
 
 void mn_enc_free(struct mini_enc *enc)
 {
-   free(enc->automaton);
    mn_clear_table(enc);
    free(enc);
 }
