@@ -68,7 +68,7 @@ static void create(int argc, char **argv)
    mn_enc_free(enc);
 }
 
-static enum mn_type format_from_str(const char *name)
+static enum mn_dump_format format_from_str(const char *name)
 {
    if (!strcmp(name, "txt"))
       return MN_DUMP_TXT;
