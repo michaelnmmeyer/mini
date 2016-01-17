@@ -241,6 +241,13 @@ function test.reuse_several_times()
    os.remove(path)
 end
 
+-- Segfaulted on that before.
+function test.iter_from_last_word()
+   local last = "Appaloosa"
+   local lex = mini.load("core_dump.mn")
+   for x in lex:iter(last, "prefix") do print("N", x) end
+end
+
 local names = {}
 for name in pairs(test) do table.insert(names, name) end
 table.sort(names)

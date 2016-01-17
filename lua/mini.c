@@ -115,6 +115,7 @@ static int mn_lua_enc_free(lua_State *lua)
    return 0;
 }
 
+/* Used in volubile.c. */
 struct mini_lua {
    struct mini *fsa;
    int lua_ref;

@@ -736,7 +736,7 @@ const char *mn_iter_next(struct mini_iter *it, size_t *len)
 
    if (!positions[depth]) {
       while (IS_LAST(transitions[positions[--depth]]))
-         if (depth == it->root)
+         if (depth <= it->root)
             goto fini;
       if (depth < it->root) {
       fini:
@@ -830,7 +830,7 @@ int mn_dump(const struct mini *fsa, FILE *fp, enum mn_dump_format format)
       [MN_DUMP_DOT] = mn_dump_dot,
    };
 
-   if (format < 0 || format >= sizeof fns / sizeof *fns)
+   if (format >= sizeof fns / sizeof *fns)
       format = MN_DUMP_TXT;
 
    fns[format](fsa, fp);
