@@ -4,6 +4,8 @@ CFLAGS = -std=c11 -Wall -Werror -g
 CFLAGS += -O2 -s -DNDEBUG -march=native -mtune=native -fomit-frame-pointer
 CFLAGS += -flto -fdata-sections -ffunction-sections -Wl,--gc-sections
 
+AMALG = mini.h mini.c
+
 #--------------------------------------
 # Abstract targets
 #--------------------------------------
@@ -31,6 +33,12 @@ uninstall:
 
 cmd/mini.ih: cmd/mini.txt
 	cmd/mkcstring.py < $< > $@
+
+mini.h: src/api.h
+	cp $< $@
+
+mini.c: $(wildcard src/*.h src/*.c)
+	src/mkamalg.py src/*.c > $@
 
 mini: $(wildcard cmd/*) mini.h mini.c
 	$(CC) $(CFLAGS) cmd/mini.c cmd/cmd.c mini.c -o $@
