@@ -89,6 +89,6 @@ fields:
     0             magic identifier (the string "mini")
     4             data format version (currently, 1)
     8             number of transitions
-    9             automaton type (0 = standard, 1 = numbered)
+    11            automaton type (0 = standard, 1 = numbered)
 
 All integers are encoded in network order.
