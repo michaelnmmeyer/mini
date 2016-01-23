@@ -7,8 +7,12 @@ Finite-state lexicon.
 This is a lexicon data structure implemented as a minimal acyclic finite-state
 automaton. Such a data structure supports the same operations as an ordered set
 (checking for the presence of a word, iterating over the lexicon in
-lexicographical order), but is much smaller due to the use of compression. The
-following shows the size of a few dictionaries before and after compression:
+lexicographical order), but is much smaller due to the use of compression.
+
+The following table shows the size of a few dictionaries before and after
+compression. The `decompressed` column gives the size of the dictionary as
+encoded in a text file, one word per line. The `compressed` column gives the
+size of the corresponding automaton in memory.
 
     dictionary      language    decompressed  compressed
     ---             ---         ---           ---
@@ -24,6 +28,10 @@ position in the lexicon. This allows finding a word given its ordinal, and,
 conversely, finding the ordinal corresponding to a word, as in a sorted array.
 
 Finally, strings containing embedded zeroes are supported.
+
+If you're interested in these matters, you might want to check my
+[front-compressed lexicon library](https://github.com/michaelnmmeyer/halva),
+which implements functionalities similar to this one.
 
 ## Building
 
@@ -79,7 +87,7 @@ array contains the number of terminal transitions reachable from the
 corresponding transition in the automaton array, for each transition. Although
 using a single 64-bit integer to store data related to a given transition might
 be faster due to locality of reference, I chose to use two arrays so that the
-same code can be used for decoding standard an numbered automata.
+same code can be used for decoding standard and numbered automata.
 
 Finally, automata are prefixed with a 12-bytes header containing the following
 fields:
