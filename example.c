@@ -31,7 +31,7 @@ int main(void)
    struct mini *lexicon;
    mn_load_file(&lexicon, fp);
    fclose(fp);
-   
+
    /* Print all words that have "greet" as prefix. */
    struct mini_iter itor;
    mn_iter_initp(&itor, lexicon, "greet", sizeof "greet" - 1);

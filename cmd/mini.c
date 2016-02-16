@@ -64,7 +64,7 @@ static void create(int argc, char **argv)
       die("cannot dump automaton: %s", mn_strerror(ret));
    if (fclose(fp))
       die("IO error:");
-   
+
    mn_enc_free(enc);
 }
 
@@ -89,13 +89,13 @@ static void dump(int argc, char **argv)
    parse_options(opts, NULL, &argc, &argv);
    if (argc != 1)
       die("wrong number of arguments");
-   
+
    enum mn_dump_format fmt = format_from_str(format);
    const char *path = *argv;
    FILE *fp = fopen(path, "rb");
    if (!fp)
       die("cannot open '%s':", path);
-   
+
    struct mini *mn;
    int ret = mn_load_file(&mn, fp);
    fclose(fp);
@@ -105,7 +105,7 @@ static void dump(int argc, char **argv)
    ret = mn_dump(mn, stdout, fmt);
    if (ret)
       die("cannot dump automaton: %s", mn_strerror(ret));
-   
+
    mn_free(mn);
 }
 
@@ -119,6 +119,6 @@ int main(int argc, char **argv)
    const char *help =
       #include "mini.ih"
    ;
-   
+
    parse_command(cmds, help, argc, argv);
 }

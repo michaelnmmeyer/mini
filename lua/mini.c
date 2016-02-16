@@ -42,10 +42,10 @@ static int mn_lua_enc_new(lua_State *lua)
       NULL
    };
    enum mn_type type = luaL_checkoption(lua, 1, "standard", types);
-   
+
    struct mini_enc **enc = lua_newuserdata(lua, sizeof *enc);
    *enc = mn_enc_new(type);
-   
+
    luaL_getmetatable(lua, MN_ENC_MT);
    lua_setmetatable(lua, -2);
    return 1;
@@ -56,7 +56,7 @@ static int mn_lua_enc_add(lua_State *lua)
    struct mini_enc **enc = luaL_checkudata(lua, 1, MN_ENC_MT);
    size_t len;
    const void *word = luaL_checklstring(lua, 2, &len);
-   
+
    int ret = mn_enc_add(*enc, word, len);
    if (ret) {
       /* Programming error. */
@@ -77,7 +77,7 @@ static int mn_lua_enc_dump(lua_State *lua)
       lua_pushstring(lua, strerror(errno));
       return 2;
    }
-   
+
    int ret = mn_enc_dump_file(*enc, fp);
    switch (ret) {
    case MN_OK:
@@ -133,7 +133,7 @@ static int mn_lua_load(lua_State *lua)
       lua_pushstring(lua, strerror(errno));
       return 2;
    }
-   
+
    int ret = mn_load_file(&fsa->fsa, fp);
    fclose(fp);
    if (ret) {
@@ -187,7 +187,7 @@ static int mn_lua_extract(lua_State *lua)
 {
    const struct mini *fsa = check_fsa(lua);
    uint32_t pos = mn_abs_index(lua, 2, fsa);
-   
+
    char word[MN_MAX_WORD_LEN + 1];
    size_t len = mn_extract(fsa, pos, word);
    if (len)
@@ -202,7 +202,7 @@ static int mn_lua_locate(lua_State *lua)
    const struct mini *fsa = check_fsa(lua);
    size_t len;
    const char *word = luaL_checklstring(lua, 2, &len);
-   
+
    uint32_t pos = mn_locate(fsa, word, len);
    if (pos)
       lua_pushnumber(lua, pos);
@@ -214,7 +214,7 @@ static int mn_lua_locate(lua_State *lua)
 static int mn_lua_type(lua_State *lua)
 {
    const struct mini *fsa = check_fsa(lua);
-   
+
    enum mn_type t = mn_type(fsa);
    switch (t) {
    case MN_STANDARD:
@@ -253,10 +253,10 @@ static struct mini_iter *mn_lua_iter_new(lua_State *lua, struct mini **fsap)
       fsa->lua_ref = luaL_ref(lua, LUA_REGISTRYINDEX);
    }
    it->fsa = fsa;
-   
+
    luaL_getmetatable(lua, MN_ITER_MT);
    lua_setmetatable(lua, -2);
-   
+
    *fsap = fsa->fsa;
    return &it->it;
 }
@@ -267,7 +267,7 @@ static int mn_lua_iter_init(lua_State *lua)
 
    struct mini *fsa;
    struct mini_iter *it = mn_lua_iter_new(lua, &fsa);
-   
+
    uint32_t pos;
    switch (lua_type(lua, 2)) {
    case LUA_TNUMBER: {
@@ -296,7 +296,7 @@ static int mn_lua_iter_init(lua_State *lua)
       return luaL_error(lua, "bad value at #2 (expect string, number, or nil, have %s)", type);
    }
    }
-   
+
    lua_pushcclosure(lua, mn_lua_iter_next, 1);
    if (pos)
       lua_pushnumber(lua, pos);
@@ -341,7 +341,7 @@ int luaopen_mini(lua_State *lua)
    lua_pushvalue(lua, -1);
    lua_setfield(lua, -2, "__index");
    luaL_setfuncs(lua, enc_fns, 0);
-   
+
    const luaL_Reg fns[] = {
       {"__gc", mn_lua_free},
       {"__len", mn_lua_size},
@@ -357,12 +357,12 @@ int luaopen_mini(lua_State *lua)
    lua_pushvalue(lua, -1);
    lua_setfield(lua, -2, "__index");
    luaL_setfuncs(lua, fns, 0);
-   
+
    luaL_newmetatable(lua, MN_ITER_MT);
    lua_pushliteral(lua, "__gc");
    lua_pushcfunction(lua, mn_lua_iter_fini);
    lua_settable(lua, -3);
-   
+
    const luaL_Reg lib[] = {
       {"encoder", mn_lua_enc_new},
       {"load", mn_lua_load},
@@ -371,9 +371,9 @@ int luaopen_mini(lua_State *lua)
    luaL_newlib(lua, lib);
    lua_pushnumber(lua, MN_MAX_WORD_LEN);
    lua_setfield(lua, -2, "MAX_WORD_LEN");
-   
+
    lua_pushstring(lua, MN_VERSION);
    lua_setfield(lua, -2, "VERSION");
-   
+
    return 1;
 }

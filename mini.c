@@ -620,7 +620,7 @@ int mn_load_file(struct mini **fsa, FILE *fp)
    int ret = mn_load(fsa, mn_read, fp);
    if (ret)
       return ret;
-   
+
    return ferror(fp) ? MN_EIO : MN_OK;
 }
 

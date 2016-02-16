@@ -49,7 +49,7 @@ local function test_functions(ref_words, num_words)
    local fsa_type = math.random(2) == 1 and "standard" or "numbered"
    encode_fsa(path, get_iter(ref_words), fsa_type)
    local words = assert(mini.load(path))
-   
+
    -- Main functions.
    for i = 1, num_words do
       local word = assert(ref_words[i])
@@ -62,10 +62,10 @@ local function test_functions(ref_words, num_words)
          assert(words:extract(i) == nil)
       end
    end
-   
+
    assert(not words:locate("zefonaodnaozndozfneozoz"))
    assert(not words:extract(num_words + 1))
-   
+
    -- Size (__len metamethod)
    assert(words:size() == num_words and #words == num_words)
 
@@ -94,7 +94,7 @@ local function test_functions(ref_words, num_words)
    -- Iteration from a string.
    local pref = ref_words[pos]
    pref = pref:sub(1, math.random(#pref))
-   
+
    local mode = math.random(2) == 1 and "string" or "prefix"
    local it, start_pos = words:iter(pref, mode)
    if fsa_type == "numbered" then
@@ -139,15 +139,15 @@ function test.empty_lexicon()
    local path = os.tmpname()
    encode_fsa(path, function() return nil end)
    local words = assert(mini.load(path))
-   
+
    assert(not words:contains(""))
    assert(not words:locate("foo"))
    assert(not words:locate(""))
-   
+
    assert(not words:iter()())
    assert(not words:iter("")())
    assert(not words:iter(1)())
-   
+
    os.remove(path)
 end
 
@@ -155,56 +155,56 @@ function test.binary_strings()
    local path = os.tmpname()
    encode_fsa(path, get_iter{"\0", "\0\1"}, "numbered")
    local words = assert(mini.load(path))
-   
+
    assert(words:contains("\0"))
    assert(words:contains("\0\1"))
    assert(words:locate("\0") == 1)
    assert(words:locate("\0\1") == 2)
    assert(words:extract(1) == "\0")
    assert(words:extract(2) == "\0\1")
-   
+
    local itor = words:iter()
    assert(itor() == "\0")
    assert(itor() == "\0\1")
-   
+
    itor = words:iter("\0\1")
    assert(itor() == "\0\1")
    assert(not itor())
-   
+
    os.remove(path)
 end
 
 function test.fsa_types()
    local path = os.tmpname()
-   
+
    -- Not numbered
    encode_fsa(path, io.lines("words.txt"), "standard")
    local aut = assert(mini.load(path))
    assert(aut:type() == "standard")
    assert(not aut:iter(23)())
    assert(not aut:extract(23))
-   
+
    -- Numbered
    encode_fsa(path, io.lines("words.txt"), "numbered")
    local aut = assert(mini.load(path))
    assert(aut:type() == "numbered")
    assert(aut:iter(23)())
    assert(aut:extract(23))
-   
+
    -- Typo in the lexicon type
    assert(not pcall(encode_fsa, path, io.lines("words.txt"), "foobar"))
-   
+
    os.remove(path)
 end
 
 -- Ensure a lexicon object is not collected while there are remaining iterators.
 -- This must be run under valgrind to be useful at all.
 function test.lexicon_collection(module)
-   local path = os.tmpname() 
+   local path = os.tmpname()
    encode_fsa(path, io.lines("words.txt"))
    local lex = mini.load(path)
    os.remove(path)
-   
+
    local itors = {}
    for i = 1, math.random(20) do
       itors[i] = lex:iter()
