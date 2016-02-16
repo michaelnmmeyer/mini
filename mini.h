@@ -1,7 +1,7 @@
 #ifndef MINI_H
 #define MINI_H
 
-#define MN_VERSION "0.1"
+#define MN_VERSION "0.2"
 
 #include <stddef.h>
 #include <stdint.h>

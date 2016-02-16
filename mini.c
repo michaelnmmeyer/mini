@@ -11,7 +11,7 @@
 #ifndef MINI_H
 #define MINI_H
 
-#define MN_VERSION "0.1"
+#define MN_VERSION "0.2"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -617,11 +617,7 @@ static int mn_read(void *fp, void *buf, size_t size)
 
 int mn_load_file(struct mini **fsa, FILE *fp)
 {
-   int ret = mn_load(fsa, mn_read, fp);
-   if (ret)
-      return ret;
-
-   return ferror(fp) ? MN_EIO : MN_OK;
+   return mn_load(fsa, mn_read, fp);
 }
 
 enum mn_type mn_type(const struct mini *fsa)
