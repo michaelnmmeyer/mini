@@ -5,9 +5,14 @@ Finite-state lexicon data structure.
 ## Purpose
 
 This is a lexicon data structure implemented as a minimal acyclic finite-state
-automaton. Such a data structure supports the same operations as an ordered set
-(checking for the presence of a word, iterating over the lexicon in
+automaton (MAFSA). Such a data structure supports the same operations as an
+ordered set (checking for the presence of a word, iterating over the lexicon in
 lexicographical order), but is much smaller due to the use of compression.
+
+Here is a sample graphical representation of the automaton that recognizes the
+words `men`, `woe`, `woeful` and `women` :
+
+![Graph](https://image.ibb.co/kZyQak/graph.png)
 
 The following table shows the size of a few dictionaries before and after
 compression. The `decompressed` column gives the size of the dictionary as
